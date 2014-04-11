@@ -1,4 +1,4 @@
-{-# LANGUAGE MagicHash, UnboxedTuples #-}
+{-# LANGUAGE MagicHash, UnboxedTuples, CPP #-}
 {-# OPTIONS_GHC -funbox-strict-fields #-}
 -----------------------------------------------------------------------------
 -- |
