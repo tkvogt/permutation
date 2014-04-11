@@ -39,7 +39,7 @@ import GHC.Prim
 import GHC.ST
 import Foreign( sizeOf )
 
-#ifdef MIN_VERSION_base(4,7,0)
+#if __GLASGOW_HASKELL__ > 762
 import GHC.Exts (isTrue#)
 
 isTrue = isTrue#
