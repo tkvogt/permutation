@@ -39,6 +39,14 @@ import GHC.Prim
 import GHC.ST
 import Foreign( sizeOf )
 
+#ifdef MIN_VERSION_base(4,7,0)
+import GHC.Exts (isTrue#)
+
+isTrue = isTrue#
+#else
+isTrue = id
+#endif 
+{-# INLINE isTrue #-}
 -----------------------------  Immutable arrays -----------------------------
 
 data IntArray = IntArray !Int (ByteArray#)
@@ -75,8 +83,8 @@ newArray_ n@(I# n#) =
 {-# INLINE sameSTIntArray #-}
 sameSTIntArray :: STIntArray s -> STIntArray s -> Bool
 sameSTIntArray (STIntArray _ marr1#) (STIntArray _ marr2#) =
-    sameMutableByteArray# marr1# marr2#
-    
+    isTrue (sameMutableByteArray# marr1# marr2#)
+
 {-# INLINE numElementsSTIntArray #-}
 numElementsSTIntArray :: STIntArray s -> Int
 numElementsSTIntArray (STIntArray n _) = n
@@ -109,15 +117,15 @@ unsafeSwap (STIntArray _ marr#) (I# i#) (I# j#) =
                 case readIntArray#  marr# j# s2# of { (# s3#, f# #) ->
                 case writeIntArray# marr# i# f# s3# of { s4# ->
                      writeIntArray# marr# j# e# s4# }}} in
-        if i# ==# j# then (# s1#, () #)
-                     else case doSwap of { s2# ->
-                          (# s2#, () #) }
+        if isTrue (i# ==# j#) then (# s1#, () #)
+                              else case doSwap of { s2# ->
+                                   (# s2#, () #) }
 
 {-# INLINE readElems #-}
 readElems :: STIntArray s -> ST s [Int]
 readElems (STIntArray (I# n#) marr#) =
     ST $ \s1# ->
-        let inlineReadList i# | i# ==# n# = []
+        let inlineReadList i# | isTrue (i# ==# n#) = []
                               | otherwise = 
                 case readIntArray# marr# i# s1# of { (# _, e# #) ->
                 let e  = I# e#
@@ -130,7 +138,7 @@ readElems (STIntArray (I# n#) marr#) =
 writeElems :: STIntArray s -> [Int] -> ST s ()
 writeElems (STIntArray (I# n#) marr#) es =
     ST $ \s1# ->
-        let fillFromList i# xs s2# | i# ==# n# = s2#
+        let fillFromList i# xs s2# | isTrue (i# ==# n#) = s2#
                                    | otherwise = case xs of
                 []         -> s2#
                 (I# y#):ys -> case writeIntArray# marr# i# y# s2# of { s3# ->

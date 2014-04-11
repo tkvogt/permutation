@@ -17,14 +17,18 @@ module Data.Permute (
     permute,
     listPermute,
     swapsPermute,
+    cyclesPermute,
 
     -- * Accessing permutation elements
     at,
     unsafeAt,
+    indexOf,
 
     -- * Permutation properties
     size,
     elems,
+    isEven,
+    period,
     
     -- * Permutation functions
     inverse,
@@ -34,6 +38,8 @@ module Data.Permute (
     -- * Applying permutations
     swaps,
     invSwaps,
+    cycleFrom,
+    cycles,
     
     -- * Sorting
     sort,
@@ -76,6 +82,13 @@ swapsPermute :: Int -> [(Int,Int)] -> Permute
 swapsPermute n ss = runST $
     unsafeFreeze =<< newSwapsPermute n ss
 
+-- | Construct a permutation from a list of disjoint cycles.
+-- @cyclesPermute n cs@ creates a permutation of size @n@ which is the
+-- composition of the cycles @cs@.
+cyclesPermute :: Int -> [[Int]] -> Permute
+cyclesPermute n cs = runST $
+    unsafeFreeze =<< newCyclesPermute n cs
+
 -- | @at p i@ gets the value of the @i@th element of the permutation
 -- @p@.  The index @i@ must be in the range @0..(n-1)@, where @n@ is the
 -- size of the permutation.
@@ -87,7 +100,12 @@ at p i
         error "Invalid index"
 {-# INLINE at #-}
 
--- | Get the inverse of a permutation
+-- | @indexOf p x@ gets an index @i@ such that @at p i@ equals @x@.
+indexOf :: Permute -> Int -> Int
+indexOf p x = runST $ flip getIndexOf x =<< unsafeThaw p
+{-# INLINE indexOf #-}
+
+-- | Get the inverse of a permutation.
 inverse :: Permute -> Permute
 inverse p = runST $ 
     unsafeFreeze =<< getInverse =<< unsafeThaw p
@@ -124,6 +142,27 @@ swaps p = runST $
 invSwaps :: Permute -> [(Int,Int)]
 invSwaps p = runST $
     getInvSwaps =<< unsafeThaw p
+
+-- | @cycleFrom p i@ gets the list of elements reachable from @i@ by
+-- repeated application of @p@.
+cycleFrom :: Permute -> Int -> [Int]
+cycleFrom p i = runST $
+    flip getCycleFrom i =<< unsafeThaw p
+
+-- | @cycles p@ returns the list of disjoin cycles in @p@.
+cycles :: Permute -> [[Int]]
+cycles p = runST $
+    getCycles =<< unsafeThaw p
+
+-- | Whether or not the permutation is made from an even number of swaps
+isEven :: Permute -> Bool
+isEven p = runST $
+    getIsEven =<< unsafeThaw p
+
+-- | @period p@ - The first power of @p@ that is the identity permutation
+period :: Permute -> Integer
+period p = runST $
+    getPeriod =<< unsafeThaw p
 
 
 -- | @sort n xs@ sorts the first @n@ elements of @xs@ and returns a 

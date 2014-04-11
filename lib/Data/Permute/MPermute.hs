@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, 
+{-# LANGUAGE BangPatterns, MultiParamTypeClasses, FunctionalDependencies, 
         FlexibleContexts #-}
 -----------------------------------------------------------------------------
 -- |
@@ -21,6 +21,7 @@ module Data.Permute.MPermute (
     newPermute_,
     newListPermute,
     newSwapsPermute,
+    newCyclesPermute,
     newCopyPermute,
     copyPermute,
     setIdentity,
@@ -28,6 +29,7 @@ module Data.Permute.MPermute (
     -- * Accessing permutation elements
     getElem,
     setElem,
+    getIndexOf,
     swapElems,
     
     -- * Permutation properties
@@ -35,6 +37,8 @@ module Data.Permute.MPermute (
     getElems,
     setElems,
     isValid,
+    getIsEven,
+    getPeriod,
 
     -- * Permutation functions
     getInverse,
@@ -45,6 +49,8 @@ module Data.Permute.MPermute (
     -- * Applying permutations
     getSwaps,
     getInvSwaps,
+    getCycleFrom,
+    getCycles,
     
     -- * Sorting
     getSort,
@@ -63,6 +69,7 @@ module Data.Permute.MPermute (
     -- * Unsafe operations
     unsafeNewListPermute,
     unsafeNewSwapsPermute,
+    unsafeNewCyclesPermute,
     unsafeGetElem,
     unsafeSetElem,
     unsafeSwapElems,
@@ -71,6 +78,7 @@ module Data.Permute.MPermute (
 
 import Control.Monad
 import Control.Monad.ST
+import Control.Monad.ST.Unsafe
 import Data.Function( on )
 import qualified Data.List as List
 import System.IO.Unsafe( unsafeInterleaveIO )
@@ -155,6 +163,24 @@ newSwapsPermuteHelp swap n ss = do
     return p
 {-# INLINE newSwapsPermuteHelp #-}
 
+-- | Construct a permutation from a list of disjoint cycles.
+-- @newCyclesPermute n cs@ creates a permutation of size @n@ which is the
+-- composition of the cycles @cs@.
+newCyclesPermute :: (MPermute p m) => Int -> [[Int]] -> m p
+newCyclesPermute n cs =
+    newSwapsPermute n $ concatMap cycleToSwaps cs
+{-# INLINE newCyclesPermute #-}
+
+unsafeNewCyclesPermute :: (MPermute p m) => Int -> [[Int]] -> m p
+unsafeNewCyclesPermute n cs =
+    unsafeNewSwapsPermute n $ concatMap cycleToSwaps cs
+{-# INLINE unsafeNewCyclesPermute #-}
+
+cycleToSwaps :: [Int] -> [(Int, Int)]
+cycleToSwaps [] = error "Empty cycle"
+cycleToSwaps (i:is) = [(i,j) | j <- reverse is]
+{-# INLINE cycleToSwaps #-}
+
 -- | Construct a new permutation by copying another.
 newCopyPermute :: (MPermute p m) => p -> m p
 newCopyPermute p = do
@@ -188,6 +214,17 @@ getElem p i = do
     when (i < 0 || i >= n) $ fail "getElem: invalid index"
     unsafeGetElem p i
 {-# INLINE getElem #-}
+
+-- | @getIndexOf p x@ returns @i@ sutch that @getElem p i@ equals @x@.  This
+-- is a linear-time operation.
+getIndexOf :: (MPermute p m) => p -> Int -> m Int
+getIndexOf p x = 
+    let go !i (y:ys) | y == x    = i
+                     | otherwise = go (i+1) ys
+        go _ _ = error "getIndexOf: invalid element"
+    in 
+        liftM (go 0) $ getElems p
+{-# INLINE getIndexOf #-}
 
 -- | @setElem p i x@ sets the value of the @i@th element of the permutation
 -- @p@.  The index @i@ must be in the range @0..(n-1)@, where @n@ is the
@@ -331,44 +368,74 @@ setNextBy cmp p = do
 -- then @i1 \<-> j1@, and so on until @ik \<-> jk@.  The laziness makes this
 -- function slightly dangerous if you are modifying the permutation.
 getSwaps :: (MPermute p m) => p -> m [(Int,Int)]
-getSwaps = getSwapsHelp False
+getSwaps = getSwapsHelp overlapping_pairs
+  where
+    overlapping_pairs []           = []
+    overlapping_pairs [_]          = []
+    overlapping_pairs (x:xs@(y:_)) = (x,y) : overlapping_pairs xs
 {-# INLINE getSwaps #-}
 
 -- | Get a lazy list of swaps equivalent to the inverse of a permutation.
 getInvSwaps :: (MPermute p m) => p -> m [(Int,Int)]
-getInvSwaps = getSwapsHelp True
+getInvSwaps = getSwapsHelp pairs_withstart
+  where
+    pairs_withstart []     = error "Empty cycle"
+    pairs_withstart (x:xs) = [(x,y) | y <- xs]
 {-# INLINE getInvSwaps #-}
 
-getSwapsHelp :: (MPermute p m) => Bool -> p -> m [(Int,Int)]
-getSwapsHelp inv p = do
-    n <- getSize p
-    liftM concat $ go n 0
+getSwapsHelp :: (MPermute p m) => ([Int] -> [(Int, Int)]) -> p -> m [(Int,Int)]
+getSwapsHelp swapgen p = do
+    liftM (concatMap swapgen) $ getCycles p
+{-# INLINE getSwapsHelp #-}
+
+-- | @getCycleFrom p i@ gets the list of elements reachable from @i@
+-- by repeated application of @p@.
+getCycleFrom :: (MPermute p m) => p -> Int -> m [Int]
+getCycleFrom p i =
+    liftM (i:) $ go i
   where
+    go j = unsafeInterleaveM $ do
+        next <- unsafeGetElem p j
+        if next == i
+            then return []
+            else liftM (next:) $ go next
+{-# INLINE getCycleFrom #-}
+
+-- | @getCycles p@ returns the list of disjoin cycles in @p@.
+getCycles :: (MPermute p m) => p -> m [[Int]]
+getCycles p = do
+    n <- getSize p
+    go n 0
+  where
+
     go n i | i == n    = return []
            | otherwise = unsafeInterleaveM $ do
-        i'    <- unsafeGetElem p i
-        least <- isLeast i i'
-        c     <- if least 
-                     then doCycle i i i'
-                     else return []
-        cs    <- go n (i+1)
-        return (c:cs)
-      
-    isLeast i k 
-        | k > i = do
-            k' <- unsafeGetElem p k
-            isLeast i k'
-        | k < i     = return False
-        | otherwise = return True
-        
-    doCycle start i i'
-        | i' == start = return []
-        | otherwise = unsafeInterleaveM $ do
-            i'' <- unsafeGetElem p i'
-            let s = if inv then (start,i') else (i,i')
-            ss <- doCycle start i' i''
-            return (s:ss)
-{-# INLINE getSwapsHelp #-}
+        least <- isLeast i i
+        if least
+            then do
+                c <- getCycleFrom p i
+                liftM (c:) $ go n (i+1)
+            else go n (i+1)
+
+    isLeast i j = do
+        k <- unsafeGetElem p j
+        case compare i k of
+            LT -> isLeast i k
+            EQ -> return True
+            GT -> return False
+{-# INLINE getCycles #-}
+
+-- | Whether or not the permutation is made from an even number of swaps
+getIsEven :: (MPermute p m) => p -> m Bool
+getIsEven p = do
+    liftM (even . length) $ getSwaps p
+
+-- | @getPeriod p@ - The first power of @p@ that is the identity permutation
+getPeriod :: (MPermute p m) => p -> m Integer
+getPeriod p = do
+    cycles <- getCycles p
+    let lengths = map List.genericLength cycles
+    return $ List.foldl' lcm 1 lengths
 
 -- | Convert a mutable permutation to an immutable one.
 freeze :: (MPermute p m) => p -> m Permute

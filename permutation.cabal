@@ -1,5 +1,5 @@
 name:            permutation
-version:         0.3
+version:         0.5.0
 homepage:        http://stat.stanford.edu/~patperry/code/permutation
 synopsis:        A library for permutations and combinations.
 description:
@@ -22,10 +22,10 @@ license:         BSD3
 license-file:    LICENSE
 copyright:       (c) 2008. Patrick Perry <patperry@stanford.edu>
 author:          Patrick Perry
-maintainer:      Patrick Perry <patperry@stanford.edu>
-cabal-version: >= 1.2.0
+maintainer:      Sophie Taylor <sophie@traumapony.org>
+cabal-version: >= 1.2.3
 build-type:      Custom
-tested-with:     GHC ==6.8.2, GHC ==6.10.1
+tested-with:     GHC ==7.8.1
 
 extra-source-files:  examples/Enumerate.hs
                      tests/Test/Choose.hs
@@ -37,6 +37,7 @@ extra-source-files:  examples/Enumerate.hs
                      tests/Permute.hs
                      tests/STPermute.hs
                      tests/Makefile
+                     NEWS
 
 library
     hs-source-dirs:  lib
@@ -55,11 +56,17 @@ library
                      Data.Permute.Base
                      Data.Permute.IOBase
 
-    build-depends:   base
-    extensions:      MultiParamTypeClasses, FunctionalDependencies, 
-                     FlexibleContexts, Rank2Types, MagicHash, UnboxedTuples
+    build-depends:   base >= 4.6 && <4.8
+    extensions:      BangPatterns, 
+                     FlexibleContexts,
+                     FunctionalDependencies, 
+                     MagicHash,
+                     MultiParamTypeClasses, 
+                     Rank2Types,
+                     UnboxedTuples,
+                     CPP
 
-    ghc-options:     -Wall
+    ghc-options:     -Wall -O3
 
     if impl(ghc >= 6.9)
       build-depends: ghc-prim
