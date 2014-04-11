@@ -1,5 +1,5 @@
 {-# LANGUAGE BangPatterns, MultiParamTypeClasses, FunctionalDependencies, 
-        FlexibleContexts #-}
+        FlexibleContexts, CPP #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module     : Data.Permute.MPermute
@@ -78,9 +78,12 @@ module Data.Permute.MPermute (
 
 import Control.Monad
 import Control.Monad.ST
+#ifdef MIN_VERSION_base(4,6)
 import Control.Monad.ST.Unsafe
+#endif
 import Data.Function( on )
 import qualified Data.List as List
+
 import System.IO.Unsafe( unsafeInterleaveIO )
 
 import Data.Permute.Base
