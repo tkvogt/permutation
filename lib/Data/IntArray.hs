@@ -1,3 +1,4 @@
+
 {-# LANGUAGE MagicHash, UnboxedTuples, CPP #-}
 {-# OPTIONS_GHC -funbox-strict-fields #-}
 -----------------------------------------------------------------------------
@@ -39,7 +40,7 @@ import GHC.Prim
 import GHC.ST
 import Foreign( sizeOf )
 
-#if __GLASGOW_HASKELL__ > 762
+#if __GLASGOW_HASKELL__ >= 78
 import GHC.Exts (isTrue#)
 
 isTrue = isTrue#
