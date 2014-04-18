@@ -78,7 +78,7 @@ module Data.Permute.MPermute (
 
 import Control.Monad
 import Control.Monad.ST
-#if __GLASGOW_HASKELL__ >= 78
+#if __GLASGOW_HASKELL__ >= 708
 import Control.Monad.ST.Unsafe
 #endif
 import Data.Function( on )

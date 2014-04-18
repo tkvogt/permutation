@@ -40,7 +40,7 @@ import GHC.Prim
 import GHC.ST
 import Foreign( sizeOf )
 
-#if __GLASGOW_HASKELL__ >= 78
+#if __GLASGOW_HASKELL__ >= 708
 import GHC.Exts (isTrue#)
 
 isTrue = isTrue#
