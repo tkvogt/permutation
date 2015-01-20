@@ -56,7 +56,7 @@ library
                      Data.Permute.Base
                      Data.Permute.IOBase
 
-    build-depends:   base >4.3, QuickCheck
+    build-depends:   base < 5 && >=4, QuickCheck
     extensions:      BangPatterns, 
                      FlexibleContexts,
                      FunctionalDependencies, 
