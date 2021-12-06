@@ -100,7 +100,7 @@ class (Monad m) => MChoose c m | c -> m, m -> c where
 -- possibilities initialized to have the @i@th element equal to @is !! i@.  
 -- For the combination to be valid, the elements must all be unique, they 
 -- must be in sorted order, and they all must be in the range @0 .. n-1@.
-newListChoose :: (MChoose c m) => Int -> Int -> [Int] -> m c
+newListChoose :: (MonadFail m, MChoose c m) => Int -> Int -> [Int] -> m c
 newListChoose n k is = do
     c <- unsafeNewListChoose n k is
     valid <- isValid c
@@ -143,7 +143,7 @@ setFirst c = do
 -- | @getElem c i@ gets the value of the @i@th element of the combination
 -- @c@.  The index @i@ must be in the range @0..k-1@, where @n@ is the
 -- size of the combination.
-getElem :: (MChoose c m) => c -> Int -> m Int
+getElem :: (MonadFail m, MChoose c m) => c -> Int -> m Int
 getElem c i = do
     k <- getSize c
     when (i < 0 || i >= k) $ fail "getElem: invalid index"
@@ -153,7 +153,7 @@ getElem c i = do
 -- | @setElem c i x@ sets the value of the @i@th element of the combination
 -- @c@.  The index @i@ must be in the range @0..k-1@, where @k@ is the
 -- size of the combination.
-setElem :: (MChoose c m) => c -> Int -> Int -> m ()
+setElem :: (MonadFail m, MChoose c m) => c -> Int -> Int -> m ()
 setElem c i x = do
     k <- getSize c
     when (i < 0 || i >= k) $ fail "getElem: invalid index"

@@ -127,7 +127,7 @@ class (Monad m) => MPermute p m | p -> m, m -> p where
 -- the @i@th element equal to @is !! i@.  For the permutation to be valid,
 -- the list @is@ must have length @n@ and contain the indices @0..(n-1)@ 
 -- exactly once each.
-newListPermute :: (MPermute p m) => Int -> [Int] -> m p
+newListPermute :: (MonadFail m, MPermute p m) => Int -> [Int] -> m p
 newListPermute n is = do
     p <- unsafeNewListPermute n is
     valid <- isValid p
@@ -150,7 +150,7 @@ unsafeNewListPermute n is = do
 -- @i0 \<-> j0@, then 
 -- @i1 \<-> j1@, and so on until
 -- @ik \<-> jk@.
-newSwapsPermute :: (MPermute p m) => Int -> [(Int,Int)] -> m p
+newSwapsPermute :: (MonadFail m, MPermute p m) => Int -> [(Int,Int)] -> m p
 newSwapsPermute = newSwapsPermuteHelp swapElems
 {-# INLINE newSwapsPermute #-}
 
@@ -169,7 +169,7 @@ newSwapsPermuteHelp swap n ss = do
 -- | Construct a permutation from a list of disjoint cycles.
 -- @newCyclesPermute n cs@ creates a permutation of size @n@ which is the
 -- composition of the cycles @cs@.
-newCyclesPermute :: (MPermute p m) => Int -> [[Int]] -> m p
+newCyclesPermute :: (MonadFail m, MPermute p m) => Int -> [[Int]] -> m p
 newCyclesPermute n cs =
     newSwapsPermute n $ concatMap cycleToSwaps cs
 {-# INLINE newCyclesPermute #-}
@@ -211,7 +211,7 @@ setIdentity p = do
 -- | @getElem p i@ gets the value of the @i@th element of the permutation
 -- @p@.  The index @i@ must be in the range @0..(n-1)@, where @n@ is the
 -- size of the permutation.
-getElem :: (MPermute p m) => p -> Int -> m Int
+getElem :: (MonadFail m, MPermute p m) => p -> Int -> m Int
 getElem p i = do
     n <- getSize p
     when (i < 0 || i >= n) $ fail "getElem: invalid index"
@@ -232,7 +232,7 @@ getIndexOf p x =
 -- | @setElem p i x@ sets the value of the @i@th element of the permutation
 -- @p@.  The index @i@ must be in the range @0..(n-1)@, where @n@ is the
 -- size of the permutation.
-setElem :: (MPermute p m) => p -> Int -> Int -> m ()
+setElem :: (MonadFail m, MPermute p m) => p -> Int -> Int -> m ()
 setElem p i x = do
     n <- getSize p
     when (i < 0 || i >= n) $ fail "getElem: invalid index"
@@ -241,7 +241,7 @@ setElem p i x = do
 
 -- | @swapElems p i j@ exchanges the @i@th and @j@th elements of the 
 -- permutation @p@.
-swapElems :: (MPermute p m) => p -> Int -> Int -> m ()
+swapElems :: (MonadFail m, MPermute p m) => p -> Int -> Int -> m ()
 swapElems p i j = do
     n <- getSize p
     when (i < 0 || i >= n || j < 0 || j >= n) $ fail "swapElems: invalid index"
@@ -278,7 +278,7 @@ isValid p = do
 {-# INLINE isValid #-}
 
 -- | Compute the inverse of a permutation.  
-getInverse :: (MPermute p m) => p -> m p
+getInverse :: (MonadFail m, MPermute p m) => p -> m p
 getInverse p = do
     n <- getSize p
     q <- newPermute_ n
@@ -289,7 +289,7 @@ getInverse p = do
 -- | Set one permutation to be the inverse of another.  
 -- @copyInverse inv p@ computes the inverse of @p@ and stores it in @inv@.
 -- The two permutations must have the same size.
-copyInverse :: (MPermute p m) => p -> p -> m ()
+copyInverse :: (MonadFail m, MPermute p m) => p -> p -> m ()
 copyInverse dst src = do
     n  <- getSize src
     n' <- getSize dst
@@ -482,11 +482,11 @@ getOrderBy cmp n xs =
 -- @p@, has the property that @p[i]@ is the rank of the @i@th element of @xs@. 
 -- The results are undefined if @n@ is greater than the length of @xs@.
 -- This is a special case of 'getRankBy'.  
-getRank :: (Ord a, MPermute p m) => Int -> [a] -> m p
+getRank :: (Ord a, MonadFail m, MPermute p m) => Int -> [a] -> m p
 getRank = getRankBy compare
 {-# INLINE getRank #-}
 
-getRankBy :: (MPermute p m) => (a -> a -> Ordering) -> Int -> [a] -> m p
+getRankBy :: (MonadFail m, MPermute p m) => (a -> a -> Ordering) -> Int -> [a] -> m p
 getRankBy cmp n xs = do
     p <- getOrderBy cmp n xs
     getInverse p
