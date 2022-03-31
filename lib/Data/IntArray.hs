@@ -36,6 +36,7 @@ module Data.IntArray (
     ) where
 
 import GHC.Base( Int(..) )
+import GHC.Exts(unsafeCoerce#)
 import GHC.Prim
 import GHC.ST
 import Foreign( sizeOf )
