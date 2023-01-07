@@ -14,8 +14,8 @@ module Data.Permute.Base
     where
 
 import Control.Monad
+import qualified Control.Monad.Fail as Fail
 import Control.Monad.ST
-import Foreign
 
 import Data.IntArray ( IntArray, STIntArray )
 import qualified Data.IntArray as Arr
@@ -72,6 +72,9 @@ newSTPermute n = do
     ArrST.writeElems marr [0 .. n-1]
     return p
 {-# INLINE newSTPermute #-}
+
+instance MonadFail (ST s)
+  where fail = Fail.fail
 
 newSTPermute_ :: Int -> ST s (STPermute s)
 newSTPermute_ n = do

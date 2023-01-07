@@ -38,12 +38,14 @@ module Data.IntArray (
 import GHC.Base( Int(..) )
 import GHC.Exts(unsafeCoerce#)
 import GHC.Prim
+import GHC.Prim.PtrEq(sameMutableByteArray#)
 import GHC.ST
 import Foreign( sizeOf )
 
 #if __GLASGOW_HASKELL__ >= 708
 import GHC.Exts (isTrue#)
 
+isTrue :: Int# -> Bool
 isTrue = isTrue#
 #else
 isTrue = id

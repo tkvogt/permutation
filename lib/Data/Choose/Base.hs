@@ -11,8 +11,8 @@ module Data.Choose.Base
     where
         
 import Control.Monad
+import qualified Control.Monad.Fail as Fail
 import Control.Monad.ST
-import Foreign
 
 import Data.IntArray ( IntArray, STIntArray )
 import qualified Data.IntArray as Arr
@@ -91,6 +91,9 @@ newSTChoose n k = do
     ArrST.writeElems marr [0 .. k-1]
     return c
 {-# INLINE newSTChoose #-}
+
+instance MonadFail (ST s)
+  where fail = Fail.fail
 
 newSTChoose_ :: Int -> Int -> ST s (STChoose s)
 newSTChoose_ n k = do
